@@ -19,6 +19,7 @@ body {
 
 header.header {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 12px;
   padding: 16px;
@@ -38,7 +39,7 @@ header.header {
 h1 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #00d1ff;
+  color: #ffffff;
   letter-spacing: 1px;
 }
 
