@@ -1,0 +1,191 @@
+/* ==========================================================
+   FROSTY AI Assistant – frontend/static/style.css
+   ----------------------------------------------------------
+   Fixed version with proper scrollable chat box.
+   ========================================================== */
+
+body {
+  background: radial-gradient(circle at center, #0b0c2a 0%, #030418 100%);
+  font-family: 'Segoe UI', sans-serif;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+header.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(20, 20, 40, 0.9);
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  height: 42px;
+  width: 42px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #00d1ff;
+  letter-spacing: 1px;
+}
+
+/* ------------------------------
+   Chat Container
+   ------------------------------ */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 90%;
+  max-width: 800px;
+  height: 85vh; /* ✅ fixed height */
+  margin-top: 10px;
+  background: rgba(25, 25, 50, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* ------------------------------
+   Chat Box (scrollable area)
+   ------------------------------ */
+.chat-box {
+  flex: 1;                        /* take all available space */
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;               /* ✅ enable scroll */
+  scroll-behavior: smooth;
+}
+
+/* ✅ Visible Scrollbar */
+.chat-box::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-box::-webkit-scrollbar-thumb {
+  background: #00d1ff;
+  border-radius: 6px;
+}
+.chat-box::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+}
+
+/* ------------------------------
+   Chat Messages
+   ------------------------------ */
+.user-msg, .bot-msg {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  line-height: 1.4;
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  animation: fadeIn 0.2s ease;
+}
+
+.user-msg {
+  background: #00c2ff;
+  align-self: flex-end;
+  color: #fff;
+}
+
+.bot-msg {
+  background: rgba(255, 255, 255, 0.1);
+  align-self: flex-start;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ------------------------------
+   Input Area (fixed bottom)
+   ------------------------------ */
+.input-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(10,10,25,0.9);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+#user-input {
+  flex: 1;
+  background: #1e1f3a;
+  border: none;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 1rem;
+}
+
+#send-btn, #mic-btn {
+  background: #00d1ff;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+#send-btn:hover, #mic-btn:hover {
+  background: #00b4d8;
+}
+
+/* ------------------------------
+   Typing / Cursor Effects
+   ------------------------------ */
+.cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.typing-dots {
+  display: inline-block;
+  font-size: 22px;
+  letter-spacing: 3px;
+}
+
+.typing-dots span {
+  opacity: 0.2;
+  animation: blinkDots 1.2s infinite;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes blinkDots {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
