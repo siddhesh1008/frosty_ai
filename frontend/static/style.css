@@ -21,26 +21,26 @@ header.header {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+  gap: 15px;
   background: rgba(20, 20, 40, 0.9);
-  width: 100%;
+  width: 15%;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   position: sticky;
-  top: 0;
   z-index: 10;
 }
 
 .logo {
-  height: 42px;
-  width: 42px;
+  height: 90px;
+  width: 90px;
 }
 
 h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 3rem;
+  font-style: italic;
+  font-family: cursive;
+  font-weight: 300;
   color: #ffffff;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 /* ------------------------------
