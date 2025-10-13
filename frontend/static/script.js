@@ -1,128 +1,114 @@
 /* ==========================================================
    Frosty AI Assistant – frontend/static/script.js
    ----------------------------------------------------------
-   Version: Streaming (Gemini live responses)
-   Works with:
-   - index.html  ✅
-   - backend/routes/chat_stream.py ✅
+   ✅ Unified streaming version (works with /api/chat)
+   ✅ Handles real-time text flow from Gemini
+   ✅ Includes auto-scroll + typing cursor
    ========================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  // ----------------------------
-  // 1. DOM Element References
-  // ----------------------------
-  const chatContainer = document.querySelector("#chat-box");
-  const inputField = document.querySelector("#user-input");
-  const sendButton = document.querySelector("#send-btn");
+  const chatContainer = document.getElementById("chat-box");
+  const inputField = document.getElementById("user-input");
+  const sendButton = document.getElementById("send-btn");
 
   if (!chatContainer || !inputField || !sendButton) {
-    console.error("❌ Missing chat elements. Check IDs in HTML.");
+    console.error("❌ Missing chat elements in HTML.");
     return;
   }
 
-  // ----------------------------
-  // 2. Utility Functions
-  // ----------------------------
+  /* ------------------------------
+     Helper: Auto-scroll to bottom
+     ------------------------------ */
+  function scrollToBottom() {
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
 
-  // Append a message bubble
-  function appendMessage(sender, text, isTyping = false) {
+  /* ------------------------------
+     Helper: Append chat messages
+     ------------------------------ */
+  function appendMessage(sender, text) {
     const msgDiv = document.createElement("div");
     msgDiv.classList.add(sender === "user" ? "user-msg" : "bot-msg");
-
-    if (isTyping) {
-      msgDiv.innerHTML = `<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>`;
-    } else {
-      msgDiv.innerHTML = text;
-    }
-
+    msgDiv.innerHTML = text;
     chatContainer.appendChild(msgDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    scrollToBottom();
     return msgDiv;
   }
 
-  // Smooth typing animation (optional for small texts)
-  async function typeEffect(text, element) {
-    element.innerHTML = ""; // clear
-    for (let i = 0; i < text.length; i++) {
-      element.innerHTML += text.charAt(i);
-      await new Promise((resolve) => setTimeout(resolve, 15));
-    }
-  }
-
-  // ----------------------------
-  // 3. Send Message (Streaming)
-  // ----------------------------
+  /* ------------------------------
+     Send message to Frosty backend
+     ------------------------------ */
   async function sendMessage() {
     const userText = inputField.value.trim();
     if (!userText) return;
 
-    // Display user message
+    // Display user's message
     appendMessage("user", userText);
     inputField.value = "";
 
-    // Create an empty bot message bubble
-    const botMsg = appendMessage("bot", "");
-    let collected = "";
+    // Create an empty bot message bubble for streamed reply
+    const botMsg = appendMessage("bot", `<span class="cursor">▌</span>`);
+    let fullReply = "";
 
     try {
-      // POST to /api/chat/stream (SSE)
-      const response = await fetch("/api/chat/stream", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText }),
+        body: JSON.stringify({ message: userText, stream: true }),
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+      // Handle streaming (Server-Sent Events)
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let buffer = "";
 
-      // Read Gemini stream chunks
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
 
-        // Split by SSE events
+        buffer += decoder.decode(value, { stream: true });
         const parts = buffer.split("\n\n");
-        buffer = parts.pop(); // keep unfinished event
+        buffer = parts.pop();
 
         for (const part of parts) {
-          if (part.startsWith("data:")) {
-            const text = part.replace("data:", "").trim();
-            if (text === "[DONE]") break;
+          if (!part.startsWith("data:")) continue;
+          const text = part.replace("data:", "").trim();
 
-            // Add streamed text in real-time
-            collected += text;
-            botMsg.innerHTML = collected + `<span class="cursor">▌</span>`;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+          if (text === "[DONE]") break;
+          if (text.startsWith("❌ Error")) {
+            botMsg.innerHTML = text;
+            scrollToBottom();
+            return;
           }
+
+          fullReply += text;
+          botMsg.innerHTML = fullReply + `<span class="cursor">▌</span>`;
+          scrollToBottom();
         }
       }
 
-      // Remove blinking cursor at end
-      botMsg.innerHTML = collected;
+      botMsg.innerHTML = fullReply || "⚠️ Frosty didn’t reply.";
+      scrollToBottom();
 
     } catch (error) {
-      console.error("❌ Stream error:", error);
+      console.error("❌ Chat error:", error);
       botMsg.innerHTML = "⚠️ Unable to reach Frosty right now.";
+      scrollToBottom();
     }
   }
 
-  // ----------------------------
-  // 4. Event Listeners
-  // ----------------------------
+  /* ------------------------------
+     Event Listeners
+     ------------------------------ */
   sendButton.addEventListener("click", sendMessage);
   inputField.addEventListener("keypress", (e) => {
     if (e.key === "Enter") sendMessage();
   });
 
-  // ----------------------------
-  // 5. Optional Intro Message
-  // ----------------------------
-  // Comment this out if your HTML already shows Frosty's intro
-  // appendMessage("bot", "👋 Hello, I’m Frosty — your AI assistant.");
+  /* ------------------------------
+     Initial Greeting
+     ------------------------------ */
+  appendMessage("bot", "👋 Hello, I’m Frosty — your AI assistant.");
 });

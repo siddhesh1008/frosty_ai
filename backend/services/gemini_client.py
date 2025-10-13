@@ -1,48 +1,49 @@
+# ==========================================================
 # backend/services/gemini_client.py
-"""
-This module connects Frosty to Google's Gemini API.
-Currently supports text input/output; we'll add streaming later.
-"""
+# ----------------------------------------------------------
+# Frosty unified Gemini client – fully real-time streaming
+# ==========================================================
 
 import google.generativeai as genai
 from config.settings import GEMINI_API_KEY, GEMINI_MODEL
+import asyncio
 
-# ----------------------------------------------------------
-# 1. Configure the Gemini SDK using your API key
-# ----------------------------------------------------------
 genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel(GEMINI_MODEL)
 
-# ----------------------------------------------------------
-# 2. Main function to send prompts to Gemini
-# ----------------------------------------------------------
-def ask_gemini(prompt: str) -> str:
+async def stream_gemini(prompt: str):
     """
-    Sends a text prompt to Gemini and returns its response.
-
-    Args:
-        prompt (str): The user's message or query.
-
-    Returns:
-        str: Gemini's text response.
+    Streams Gemini output token-by-token.
+    Uses thread executor for async compatibility.
     """
-    if not GEMINI_API_KEY:
-        return "⚠️ Gemini API key not found. Please check your .env file."
-
     try:
-        # Load model (model name is set in .env)
-        model = genai.GenerativeModel(GEMINI_MODEL, generation_config={
-            "temperature": 0.9,
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 1024,
-        })
+        loop = asyncio.get_event_loop()
 
-        # Send prompt and get the response
-        response = model.generate_content(prompt)
+        def sync_stream():
+            for chunk in model.generate_content(prompt, stream=True):
+                if chunk.text:
+                    yield chunk.text
 
-        # Return Gemini's reply text safely
-        return response.text if response and hasattr(response, "text") else "⚠️ No response from Gemini."
+        # ✅ Do not pre-buffer with list(); yield live tokens instead
+        queue = asyncio.Queue()
+
+        def produce():
+            try:
+                for token in sync_stream():
+                    asyncio.run_coroutine_threadsafe(queue.put(token), loop)
+            finally:
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+        # Run producer in background thread
+        asyncio.get_running_loop().run_in_executor(None, produce)
+
+        # Consume tokens asynchronously
+        while True:
+            token = await queue.get()
+            if token is None:
+                break
+            yield token
 
     except Exception as e:
-        # Catch and return any runtime errors for debugging
-        return f"❌ Error communicating with Gemini: {str(e)}"
+        print("❌ Error in stream_gemini:", e)
+        yield f"❌ Error: {str(e)}"

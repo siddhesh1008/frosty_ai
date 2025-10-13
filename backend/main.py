@@ -64,8 +64,6 @@ async def serve_index():
 # ----------------------------------------------------------
 from backend.routes.chat import router as chat_router
 app.include_router(chat_router)
-from backend.routes.chat_stream import router as chat_stream_router
-app.include_router(chat_stream_router)
 
 # ----------------------------------------------------------
 # 6. Health check endpoint

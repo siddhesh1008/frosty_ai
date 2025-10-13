@@ -1,40 +1,40 @@
+# ==========================================================
 # backend/routes/chat.py
-"""
-FastAPI route for handling chat requests.
-Receives text from the frontend, calls Gemini, and returns AI's reply.
-"""
+# ----------------------------------------------------------
+# Frosty Chat API – Always Streaming (fixed async generator)
+# ==========================================================
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from backend.services.gemini_client import ask_gemini
+from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
+from backend.services.gemini_client import stream_gemini
 
 router = APIRouter(prefix="/api", tags=["Chat"])
 
-# ----------------------------------------------------------
-# Define the expected request body schema
-# ----------------------------------------------------------
-class ChatRequest(BaseModel):
-    message: str  # User's message text
-
-
-# ----------------------------------------------------------
-# POST endpoint: /api/chat
-# ----------------------------------------------------------
 @router.post("/chat")
-async def chat_endpoint(request: ChatRequest):
-    """
-    Handles chat messages from the frontend and returns Gemini's response.
-    """
+async def chat_endpoint(request: Request):
+    """Always streams Gemini responses (real-time)."""
     try:
-        user_message = request.message.strip()
+        data = await request.json()
+        user_message = data.get("message", "").strip()
+
         if not user_message:
-            raise HTTPException(status_code=400, detail="Empty message.")
+            async def empty_message():
+                yield "data: ⚠️ Please enter a message.\n\n"
+                yield "data: [DONE]\n\n"
+            return StreamingResponse(empty_message(), media_type="text/event-stream")
 
-        # Ask Gemini for a reply
-        gemini_reply = ask_gemini(user_message)
+        async def event_stream():
+            async for chunk in stream_gemini(user_message):
+                yield f"data: {chunk}\n\n"
+            yield "data: [DONE]\n\n"
 
-        # Return JSON to frontend
-        return {"response": gemini_reply}
+        # ✅ Must not "return" inside the generator; only here
+        response = StreamingResponse(event_stream(), media_type="text/event-stream")
+        return response
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Chat route error:", e)
+        async def error_stream():
+            yield f"data: ❌ Error: {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
