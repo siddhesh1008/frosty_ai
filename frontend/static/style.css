@@ -23,7 +23,7 @@ header.header {
   align-items: center;
   gap: 15px;
   background: rgba(20, 20, 40, 0.9);
-  width: 15%;
+  width: 100%;
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   position: sticky;
   z-index: 10;
