@@ -1,9 +1,9 @@
 /* ==========================================================
    Frosty AI Assistant – frontend/static/script.js
    ----------------------------------------------------------
-   ✅ Unified streaming version (works with /api/chat)
-   ✅ Handles real-time text flow from Gemini
-   ✅ Includes auto-scroll + typing cursor
+   ⚡ Non-streaming version (optimized for OpenAI)
+   ✅ Fast full responses (no spacing issues)
+   ✅ Auto-scroll + error handling + greeting
    ========================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -46,57 +46,27 @@ document.addEventListener("DOMContentLoaded", () => {
     appendMessage("user", userText);
     inputField.value = "";
 
-    // Create an empty bot message bubble for streamed reply
-    const botMsg = appendMessage("bot", `<span class="cursor">▌</span>`);
-    let fullReply = "";
+    // Create placeholder bot message
+    const botMsg = appendMessage("bot", "💭 Thinking...");
+    scrollToBottom();
 
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, stream: true }),
+        body: JSON.stringify({ message: userText }),
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      // Handle streaming (Server-Sent Events)
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop();
-
-        for (const part of parts) {
-          if (!part.startsWith("data:")) continue;
-          const text = part.replace("data:", "").trim();
-
-          if (text === "[DONE]") break;
-          if (text.startsWith("❌ Error")) {
-            botMsg.innerHTML = text;
-            scrollToBottom();
-            return;
-          }
-
-          fullReply += text;
-          botMsg.innerHTML = fullReply + `<span class="cursor">▌</span>`;
-          scrollToBottom();
-        }
-      }
-
-      botMsg.innerHTML = fullReply || "⚠️ Frosty didn’t reply.";
-      scrollToBottom();
-
+      const data = await response.json();
+      botMsg.innerHTML = data.reply || "⚠️ Frosty didn’t reply.";
     } catch (error) {
       console.error("❌ Chat error:", error);
       botMsg.innerHTML = "⚠️ Unable to reach Frosty right now.";
-      scrollToBottom();
     }
+
+    scrollToBottom();
   }
 
   /* ------------------------------
