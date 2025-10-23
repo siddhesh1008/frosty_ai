@@ -2,3 +2,4 @@ python-dotenv
 fastapi
 uvicorn[standard]
 openai>=1.55.0
+requests
